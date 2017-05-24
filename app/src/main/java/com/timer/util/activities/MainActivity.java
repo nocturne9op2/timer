@@ -5,11 +5,13 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.AnimationDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.hookedonplay.decoviewlib.DecoView;
@@ -40,11 +42,14 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.dynamicArcViewFront)
     DecoView decoViewFront;
 
+    private AnimationDrawable animationDrawable;
+
+    private int seriesIndex;
+
     private static final long TIMER_LENGTH = 10 * 1000 + 1000; // 3600 seconds plus adjustments
     private long timeToGo;
     private CountDownTimer countDownTimer;
     private TimerState state;
-    private int seriesIndex;
 
     PrefUtils preferences;
 
@@ -53,6 +58,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+
+        RelativeLayout relativeLayout = (RelativeLayout) findViewById(R.id.relativeLayout);
+        animationDrawable = (AnimationDrawable) relativeLayout.getBackground();
+        animationDrawable.setEnterFadeDuration(2000);
+        animationDrawable.setExitFadeDuration(3000);
 
         decoViewBack.addSeries(DecoViewUtils.buildBase(true, DimensionsUtils.smallDecoViewLineWidth));
         seriesIndex = decoViewFront.addSeries(DecoViewUtils.buildSeries(Color.GREEN, 0, DimensionsUtils.largeDecoViewLineWidth, null));
@@ -63,6 +73,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (animationDrawable != null && !animationDrawable.isRunning()) {
+            animationDrawable.start();
+        }
+
         initTimer();
         removeAlarm();
     }
@@ -70,6 +84,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (animationDrawable != null && animationDrawable.isRunning()) {
+            animationDrawable.stop();
+        }
+
         if (state == TimerState.RUNNING) {
             countDownTimer.cancel();
             setAlarm();

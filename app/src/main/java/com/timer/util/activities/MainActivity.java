@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
@@ -23,8 +24,6 @@ import com.timer.util.utils.DimensionsUtils;
 import com.timer.util.utils.PrefUtils;
 
 import java.util.Calendar;
-
-import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
     private enum TimerState {
@@ -41,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private Handler handler;
     private Runnable runnable;
 
-    private static final long TIMER_LENGTH = 1000;
+    private static final long TIMER_LENGTH = 3600;
     private long timeToGo;
     private NewCountDownTimer countDownTimer;
     private TimerState state;
@@ -65,10 +64,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        initBackground();
         initHandler();
         initTimer();
-        initBackground();
         initTimeUI();
+        initButton();
         removeAlarm();
     }
 
@@ -83,15 +83,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @OnClick(R.id.buttonTimer)
-    public void onTimerButtonClick() {
-        if (state == TimerState.STOPPED) {
-            preferences.setStartedTime(getNowInSeconds());
-            startTimer();
-        } else {
-            countDownTimer.onFinish();
-            countDownTimer.cancel();
-        }
+    private void initBackground() {
+        background.init(getNowInHourOfDay());
     }
 
     private void initHandler() {
@@ -121,13 +114,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initBackground() {
-        background.init(getNowInHourOfDay());
-    }
-
     private void initTimeUI() {
         backDecoView.addSeries(DecoViewUtils.buildBase(true, DimensionsUtils.smallDecoViewLineWidth));
-        seriesIndex = frontDecoView.addSeries(DecoViewUtils.buildSeries(Color.argb(200, 255, 255, 255), (TIMER_LENGTH - timeToGo) / 10f, DimensionsUtils.largeDecoViewLineWidth, null));
+        seriesIndex = frontDecoView.addSeries(DecoViewUtils.buildSeries(Color.argb(255, 255, 255, 255), (TIMER_LENGTH - timeToGo) / 36f, DimensionsUtils.largeDecoViewLineWidth, null));
+    }
+
+    private void initButton() {
+        timerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (state == TimerState.STOPPED) {
+                    preferences.setStartedTime(getNowInSeconds());
+                    startTimer();
+                } else {
+                    countDownTimer.onFinish();
+                    countDownTimer.cancel();
+                }
+            }
+        });
     }
 
     private void startTimer() {
@@ -164,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateTimeUI() {
-        frontDecoView.addEvent(DecoViewUtils.buildSeriesShowEvent((TIMER_LENGTH - timeToGo) / 10f, seriesIndex, 0, 250));
+        frontDecoView.addEvent(DecoViewUtils.buildSeriesShowEvent((TIMER_LENGTH - timeToGo) / 36f, seriesIndex, 0, 250));
     }
 
     private long getNowInSeconds() {

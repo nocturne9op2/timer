@@ -1,4 +1,9 @@
 <resources>
+    <color name="colorPrimary">#313638</color>
+    <color name="colorPrimaryDark">#1B1E1F</color>
+
+    <color name="colorTextLight">#FFFFFF</color>
+
     <color name="mantle1">#24C6DC</color>
     <color name="mantle2">#514A9D</color>
 

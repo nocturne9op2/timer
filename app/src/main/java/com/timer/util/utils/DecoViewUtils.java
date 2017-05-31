@@ -8,7 +8,7 @@ import com.hookedonplay.decoviewlib.events.DecoEvent;
 
 public final class DecoViewUtils {
     public static SeriesItem buildBase(boolean initialVisibility, float lineWidth) {
-        return new SeriesItem.Builder(Color.argb(255, 218, 218, 218))
+        return new SeriesItem.Builder(Color.argb(64, 27, 30, 31))
                 .setInitialVisibility(initialVisibility)
                 .setRange(0, 100, 100)
                 .setLineWidth(lineWidth)

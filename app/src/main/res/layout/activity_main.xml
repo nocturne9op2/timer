@@ -3,26 +3,27 @@
     android:id="@+id/relativeLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/animation_list"
     tools:context="com.timer.util.activities.MainActivity">
 
     <com.hookedonplay.decoviewlib.DecoView
         android:id="@+id/dynamicArcViewBack"
-        android:layout_width="250dp"
-        android:layout_height="250dp"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
         android:layout_centerInParent="true" />
 
     <com.hookedonplay.decoviewlib.DecoView
         android:id="@+id/dynamicArcViewFront"
-        android:layout_width="260dp"
-        android:layout_height="260dp"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
         android:layout_centerInParent="true" />
 
     <Button
-        android:id="@+id/main_timer_button"
+        android:id="@+id/buttonTimer"
         style="?android:borderlessButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:text="@string/start" />
+        android:text="@string/start"
+        android:textColor="@color/colorTextLight"
+        android:textSize="@dimen/sizeTextMedium" />
 </RelativeLayout>

@@ -5,10 +5,9 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.drawable.AnimationDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.CountDownTimer;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Button;
 import android.widget.RelativeLayout;
@@ -16,15 +15,15 @@ import android.widget.Toast;
 
 import com.hookedonplay.decoviewlib.DecoView;
 import com.timer.util.R;
+import com.timer.util.entities.NewCountDownTimer;
 import com.timer.util.receivers.TimerExpiredReceiver;
+import com.timer.util.utils.BackgroundUtils;
 import com.timer.util.utils.DecoViewUtils;
 import com.timer.util.utils.DimensionsUtils;
 import com.timer.util.utils.PrefUtils;
 
 import java.util.Calendar;
 
-import butterknife.BindView;
-import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,60 +32,50 @@ public class MainActivity extends AppCompatActivity {
         RUNNING
     }
 
-    @BindView(R.id.main_timer_button)
-    Button timerButton;
-
-    @BindView(R.id.dynamicArcViewBack)
-    DecoView decoViewBack;
-
-    @BindView(R.id.dynamicArcViewFront)
-    DecoView decoViewFront;
-
-    private AnimationDrawable animationDrawable;
-
+    private RelativeLayout relativeLayout;
+    private Button timerButton;
+    private DecoView backDecoView;
+    private DecoView frontDecoView;
     private int seriesIndex;
 
-    private static final long TIMER_LENGTH = 10 * 1000 + 1000; // 3600 seconds plus adjustments
+    private Handler handler;
+    private Runnable runnable;
+
+    private static final long TIMER_LENGTH = 1000;
     private long timeToGo;
-    private CountDownTimer countDownTimer;
+    private NewCountDownTimer countDownTimer;
     private TimerState state;
 
-    PrefUtils preferences;
+    private BackgroundUtils background;
+    private PrefUtils preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ButterKnife.bind(this);
+        relativeLayout = (RelativeLayout) findViewById(R.id.relativeLayout);
+        timerButton = (Button) findViewById(R.id.buttonTimer);
+        backDecoView = (DecoView) findViewById(R.id.dynamicArcViewBack);
+        frontDecoView = (DecoView) findViewById(R.id.dynamicArcViewFront);
 
-        RelativeLayout relativeLayout = (RelativeLayout) findViewById(R.id.relativeLayout);
-        animationDrawable = (AnimationDrawable) relativeLayout.getBackground();
-        animationDrawable.setEnterFadeDuration(2000);
-        animationDrawable.setExitFadeDuration(3000);
-
-        decoViewBack.addSeries(DecoViewUtils.buildBase(true, DimensionsUtils.smallDecoViewLineWidth));
-        seriesIndex = decoViewFront.addSeries(DecoViewUtils.buildSeries(Color.GREEN, 0, DimensionsUtils.largeDecoViewLineWidth, null));
-
+        background = new BackgroundUtils(this, relativeLayout);
         preferences = new PrefUtils(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (animationDrawable != null && !animationDrawable.isRunning()) {
-            animationDrawable.start();
-        }
-
+        initHandler();
         initTimer();
+        initBackground();
+        initTimeUI();
         removeAlarm();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (animationDrawable != null && animationDrawable.isRunning()) {
-            animationDrawable.stop();
-        }
+        handler.removeCallbacks(runnable);
 
         if (state == TimerState.RUNNING) {
             countDownTimer.cancel();
@@ -94,11 +83,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @OnClick(R.id.buttonTimer)
+    public void onTimerButtonClick() {
+        if (state == TimerState.STOPPED) {
+            preferences.setStartedTime(getNowInSeconds());
+            startTimer();
+        } else {
+            countDownTimer.onFinish();
+            countDownTimer.cancel();
+        }
+    }
+
+    private void initHandler() {
+        handler = new Handler();
+        handler.postDelayed(runnable = new Runnable() {
+            @Override
+            public void run() {
+                updateBackground();
+                handler.postDelayed(this, 3000);
+            }
+        }, 3000);
+    }
+
     private void initTimer() {
         long startTime = preferences.getStartedTime();
 
         if (startTime > 0) {
-            timeToGo = (TIMER_LENGTH - (getNow() - startTime));
+            timeToGo = (TIMER_LENGTH - (getNowInSeconds() - startTime));
 
             if (timeToGo <= 0) { // timer expired
                 onTimerFinish();
@@ -110,12 +121,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void startTimer() {
-        preferences.setStartedTime(getNow());
+    private void initBackground() {
+        background.init(getNowInHourOfDay());
+    }
 
-        countDownTimer = new CountDownTimer(timeToGo, 500) {
+    private void initTimeUI() {
+        backDecoView.addSeries(DecoViewUtils.buildBase(true, DimensionsUtils.smallDecoViewLineWidth));
+        seriesIndex = frontDecoView.addSeries(DecoViewUtils.buildSeries(Color.argb(200, 255, 255, 255), (TIMER_LENGTH - timeToGo) / 10f, DimensionsUtils.largeDecoViewLineWidth, null));
+    }
+
+    private void startTimer() {
+        countDownTimer = new NewCountDownTimer(timeToGo * 1000, 1000) {
             public void onTick(long millisUntilFinished) {
-                timeToGo -= 500;
+                timeToGo -= 1;
                 updateTimeUI();
             }
 
@@ -125,8 +143,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }.start();
 
+        timerButton.setText(R.string.stop);
         state = TimerState.RUNNING;
-        updateButtonStart();
     }
 
     private void onTimerFinish() {
@@ -137,39 +155,30 @@ public class MainActivity extends AppCompatActivity {
     private void resetTimer() {
         preferences.setStartedTime(0);
         timeToGo = TIMER_LENGTH;
-        state = TimerState.STOPPED;
-        updateButtonStop();
-    }
-
-    private void updateButtonStart() {
-        timerButton.setText(R.string.stop);
-    }
-
-    private void updateButtonStop() {
         timerButton.setText(R.string.start);
+        state = TimerState.STOPPED;
+    }
+
+    private void updateBackground() {
+        background.update(getNowInHourOfDay());
     }
 
     private void updateTimeUI() {
-        decoViewFront.addEvent(DecoViewUtils.buildSeriesShowEvent((TIMER_LENGTH - timeToGo) / 100.0f, seriesIndex, 0, 250));
+        frontDecoView.addEvent(DecoViewUtils.buildSeriesShowEvent((TIMER_LENGTH - timeToGo) / 10f, seriesIndex, 0, 250));
     }
 
-    @OnClick(R.id.main_timer_button)
-    public void onButtonClicked() {
-        if (state == TimerState.STOPPED) {
-            startTimer();
-        } else {
-            countDownTimer.onFinish();
-            countDownTimer.cancel();
-        }
-    }
-
-    private long getNow() {
+    private long getNowInSeconds() {
         Calendar rightNow = Calendar.getInstance();
-        return rightNow.getTimeInMillis();
+        return rightNow.getTimeInMillis() / 1000;
+    }
+
+    private int getNowInHourOfDay() {
+        Calendar rightNow = Calendar.getInstance();
+        return rightNow.get(Calendar.HOUR_OF_DAY);
     }
 
     public void setAlarm() {
-        long wakeUpTime = (preferences.getStartedTime() + TIMER_LENGTH);
+        long wakeUpTime = (preferences.getStartedTime() + TIMER_LENGTH) * 1000;
         AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(this, TimerExpiredReceiver.class);
         PendingIntent sender = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);

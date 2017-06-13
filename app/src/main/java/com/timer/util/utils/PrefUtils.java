@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 public class PrefUtils {
-    private static final String STARTED_TIME_ID = "com.timer.time";
+    private static final String STARTED_TIME_ID = "com.timer.util.time";
     private SharedPreferences preferences;
 
     public PrefUtils(Context context) {

@@ -23,7 +23,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
+        android:fontFamily="sans-serif-thin"
         android:text="@string/start"
-        android:textColor="@color/colorTextLight"
-        android:textSize="@dimen/sizeTextMedium" />
+        android:textColor="@color/color_text_light"
+        android:textSize="@dimen/size_text_med_large" />
 </RelativeLayout>

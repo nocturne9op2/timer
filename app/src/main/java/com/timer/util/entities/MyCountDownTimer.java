@@ -20,7 +20,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
 
-public abstract class NewCountDownTimer {
+public abstract class MyCountDownTimer {
     /**
      * Millis since epoch when alarm should stop.
      */
@@ -45,7 +45,7 @@ public abstract class NewCountDownTimer {
      * @param countDownInterval The interval along the way to receive
      *                          {@link #onTick(long)} callbacks.
      */
-    public NewCountDownTimer(long millisInFuture, long countDownInterval) {
+    public MyCountDownTimer(long millisInFuture, long countDownInterval) {
         mMillisInFuture = millisInFuture;
         mCountdownInterval = countDownInterval;
     }
@@ -61,7 +61,7 @@ public abstract class NewCountDownTimer {
     /**
      * Start the countdown.
      */
-    public synchronized final NewCountDownTimer start() {
+    public synchronized final MyCountDownTimer start() {
         mCancelled = false;
         if (mMillisInFuture <= 0) {
             onFinish();
@@ -71,7 +71,6 @@ public abstract class NewCountDownTimer {
         mHandler.sendMessage(mHandler.obtainMessage(MSG));
         return this;
     }
-
 
     /**
      * Callback fired on regular interval.
@@ -85,17 +84,13 @@ public abstract class NewCountDownTimer {
      */
     public abstract void onFinish();
 
-
     private static final int MSG = 1;
-
 
     // handles counting down
     private Handler mHandler = new Handler() {
-
         @Override
         public void handleMessage(Message msg) {
-
-            synchronized (NewCountDownTimer.this) {
+            synchronized (MyCountDownTimer.this) {
                 if (mCancelled) {
                     return;
                 }

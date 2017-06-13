@@ -1,24 +1,24 @@
 <resources>
-    <color name="colorPrimary">#313638</color>
-    <color name="colorPrimaryDark">#1B1E1F</color>
+    <color name="color_primary">#313638</color>
+    <color name="color_primary_dark">#1B1E1F</color>
 
-    <color name="colorTextLight">#FFFFFF</color>
+    <color name="color_text_light">#FFFFFF</color>
 
-    <color name="mantle1">#24C6DC</color>
-    <color name="mantle2">#514A9D</color>
+    <color name="color_mantle1">#24C6DC</color>
+    <color name="color_mantle2">#514A9D</color>
 
-    <color name="sweet_morning1">#FFC371</color>
-    <color name="sweet_morning2">#FF5F6D</color>
+    <color name="color_sweet_morning1">#FFC371</color>
+    <color name="color_sweet_morning2">#FF5F6D</color>
 
-    <color name="back_to_earth1">#00C9FF</color>
-    <color name="back_to_earth2">#92FE9D</color>
+    <color name="color_back_to_earth1">#00C9FF</color>
+    <color name="color_back_to_earth2">#92FE9D</color>
 
-    <color name="grapefruit_sunset1">#E96443</color>
-    <color name="grapefruit_sunset2">#904E95</color>
+    <color name="color_grapefruit_sunset1">#E96443</color>
+    <color name="color_grapefruit_sunset2">#904E95</color>
 
-    <color name="cyftlt1">#B06AB3</color>
-    <color name="cyftlt2">#4568DC</color>
+    <color name="color_cyftlt1">#B06AB3</color>
+    <color name="color_cyftlt2">#4568DC</color>
 
-    <color name="celestial1">#C33764</color>
-    <color name="celestial2">#1D2671</color>
+    <color name="color_celestial1">#C33764</color>
+    <color name="color_celestial2">#1D2671</color>
 </resources>

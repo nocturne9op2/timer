@@ -4,10 +4,8 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Color;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,6 +21,7 @@ import com.timer.util.receivers.TimerExpiredReceiver;
 import com.timer.util.utils.BackgroundUtils;
 import com.timer.util.utils.DecoViewUtils;
 import com.timer.util.utils.DimensionsUtils;
+import com.timer.util.utils.NotificationUtils;
 import com.timer.util.utils.PrefUtils;
 
 import java.io.File;
@@ -70,25 +69,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onStart() {
+        super.onStart();
         initBackground();
-        initHandler();
+        initBackgroundHandler();
         initTimer();
-        initTimeUI();
-        initButton();
-        removeAlarm();
+        initTimerUI();
+        initButtonUI();
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        removeHandler();
-        removeTimeUI();
-
+    protected void onResume() {
+        super.onResume();
+        removeNotification();
         if (timerState == TimerState.RUNNING) {
-            countDownTimer.cancel();
-            setAlarm();
+            removeAlarm();
         }
     }
 
@@ -104,6 +99,22 @@ public class MainActivity extends AppCompatActivity {
                             | View.SYSTEM_UI_FLAG_FULLSCREEN
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (timerState == TimerState.RUNNING) {
+            countDownTimer.cancel();
+            setAlarm();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        removeTimerUI();
+        removeBackgroundHandler();
     }
 
     @Override
@@ -140,12 +151,15 @@ public class MainActivity extends AppCompatActivity {
         return dir.delete();
     }
 
-
     private void initBackground() {
         background.init(getNowInHourOfDay());
     }
 
-    private void initHandler() {
+    private void updateBackground() {
+        background.update(getNowInHourOfDay());
+    }
+
+    private void initBackgroundHandler() {
         handler = new Handler();
         handler.postDelayed(runnable = new Runnable() {
             @Override
@@ -156,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
         }, 3000);
     }
 
-    private void removeHandler() {
+    private void removeBackgroundHandler() {
         handler.removeCallbacks(runnable);
     }
 
@@ -176,76 +190,84 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initTimeUI() {
+    private void startTimer() {
+        countDownTimer = new MyCountDownTimer(timeToGo * 1000, 1000) {
+            public void onTick(long millisUntilFinished) {
+                timeToGo -= 1;
+                updateTimerUI();
+            }
+
+            public void onFinish() {
+                resetTimer();
+                issueNotification();
+                updateTimerUI();
+            }
+        }.start();
+
+        timerState = TimerState.RUNNING;
+        updateButtonUI();
+    }
+
+    private void resetTimer() {
+        preferences.setStartedTime(0);
+        timeToGo = TIMER_LENGTH;
+        timerState = TimerState.STOPPED;
+        updateButtonUI();
+    }
+
+    private void initTimerUI() {
+        RelativeLayout.LayoutParams smallSize = new RelativeLayout.LayoutParams((int) DimensionsUtils.SMALL_DECOVIEW_WIDTH, (int) DimensionsUtils.SMALL_DECOVIEW_WIDTH);
+        RelativeLayout.LayoutParams largeSize = new RelativeLayout.LayoutParams((int) DimensionsUtils.LARGE_DECOVIEW_WIDTH, (int) DimensionsUtils.LARGE_DECOVIEW_WIDTH);
+        smallSize.addRule(RelativeLayout.CENTER_IN_PARENT);
+        largeSize.addRule(RelativeLayout.CENTER_IN_PARENT);
+
+        backDecoView.setLayoutParams(smallSize);
         backDecoView.addSeries(DecoViewUtils.buildBase(true, DimensionsUtils.SMALL_DECOVIEW_LINEWIDTH));
+
+        frontDecoView.setLayoutParams(largeSize);
         seriesIndex = frontDecoView.addSeries(DecoViewUtils.buildSeries(Color.argb(255, 255, 255, 255), (TIMER_LENGTH - timeToGo) * 10f, DimensionsUtils.LARGE_DECOVIEW_LINEWIDTH, null));
     }
 
-    private void removeTimeUI() {
+    private void updateTimerUI() {
+        frontDecoView.addEvent(DecoViewUtils.buildSeriesShowEvent((TIMER_LENGTH - timeToGo) * 10f, seriesIndex, 0, Resources.getSystem().getInteger(android.R.integer.config_shortAnimTime)));
+    }
+
+    private void removeTimerUI() {
         frontDecoView.deleteAll();
         backDecoView.deleteAll();
     }
 
-    private void initButton() {
+    private void initButtonUI() {
         timerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (timerState == TimerState.STOPPED) {
                     preferences.setStartedTime(getNowInSeconds());
                     startTimer();
+                    removeNotification();
                 } else {
-                    countDownTimer.onFinish();
                     countDownTimer.cancel();
+                    resetTimer();
+                    updateTimerUI();
                 }
             }
         });
     }
 
-    private void startTimer() {
-        countDownTimer = new MyCountDownTimer(timeToGo * 1000, 1000) {
-            public void onTick(long millisUntilFinished) {
-                timeToGo -= 1;
-                updateTimeUI();
-            }
-
-            public void onFinish() {
-                resetTimer();
-                playNotificationRingtone();
-                updateTimeUI();
-            }
-        }.start();
-
-        timerButton.setText(R.string.stop);
-        timerState = TimerState.RUNNING;
+    private void updateButtonUI() {
+        if (timerState == TimerState.STOPPED) {
+            timerButton.setText(R.string.start);
+        } else {
+            timerButton.setText(R.string.stop);
+        }
     }
 
-    private void resetTimer() {
-        preferences.setStartedTime(0);
-        timeToGo = TIMER_LENGTH;
-        timerButton.setText(R.string.start);
-        timerState = TimerState.STOPPED;
+    private void issueNotification() {
+        NotificationUtils.issue(this, NotificationUtils.buildBase(this, null));
     }
 
-    private void updateBackground() {
-        background.update(getNowInHourOfDay());
-    }
-
-    private void updateTimeUI() {
-        frontDecoView.addEvent(DecoViewUtils.buildSeriesShowEvent((TIMER_LENGTH - timeToGo) * 10f, seriesIndex, 0, 250));
-    }
-
-    private void playNotificationRingtone() {
-        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), notification);
-        ringtone.play();
-    }
-
-    private long getNowInSeconds() {
-        return Calendar.getInstance().getTimeInMillis() / 1000;
-    }
-
-    private int getNowInHourOfDay() {
-        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+    private void removeNotification() {
+        NotificationUtils.remove(this, NotificationUtils.NOTIFICATION_ID);
     }
 
     public void setAlarm() {
@@ -267,5 +289,13 @@ public class MainActivity extends AppCompatActivity {
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         alarmManager.cancel(pendingIntent);
+    }
+
+    private long getNowInSeconds() {
+        return Calendar.getInstance().getTimeInMillis() / 1000;
+    }
+
+    private int getNowInHourOfDay() {
+        return Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
     }
 }
